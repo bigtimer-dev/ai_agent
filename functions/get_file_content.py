@@ -1,5 +1,6 @@
 import os
 from functions.config import CHAR_LIMIT
+from google.genai import types
 
 
 def get_file_content(working_directory, file_path):
@@ -23,3 +24,18 @@ def get_file_content(working_directory, file_path):
 
     except Exception as e:
         return f"Error:{e}"
+
+
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description="Read files of a specified file_path up to 10,000 characters and truncated the rest if is more than 10,000, constrained to the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The file_path of the file to read from for not more than 10,000 characters, relative to the working directory.",
+            ),
+        },
+    ),
+)

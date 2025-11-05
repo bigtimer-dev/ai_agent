@@ -5,6 +5,11 @@ from google import genai  # import the google library for Ai
 import sys  # importing sys to use command line for prompt
 from google.genai import types
 from enum import Enum
+from functions.get_file_content import schema_get_file_content
+from functions.run_python_file import schema_run_python_file
+from functions.get_files_info import schema_get_files_info
+from functions.write_file import schema_write_file
+from system_prompt_config import system_prompt
 
 load_dotenv()  # loading the env variables
 api_key = os.environ.get(
@@ -13,6 +18,16 @@ api_key = os.environ.get(
 client = genai.Client(
     api_key=api_key
 )  # assing the client with the api key for response
+
+
+available_functions = types.Tool(
+    function_declarations=[
+        schema_get_files_info,
+        schema_write_file,
+        schema_run_python_file,
+        schema_get_file_content,
+    ]
+)
 
 
 class options(Enum):
@@ -29,6 +44,9 @@ def response_from_ia(messages):
     response = client.models.generate_content(
         model="gemini-2.0-flash-001",
         contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        ),
     )
     return response
 
@@ -41,18 +59,26 @@ def main():
     # using the command line to ask for a user prompt
     match len(sys.argv):
         case options.no_verbose.value:
-            print(response.text)
+            if response.function_calls:
+                for item in response.function_calls:
+                    print(f"Calling function: {item.name}({item.args})")
+            else:
+                print(response.text)
 
         case options.with_verbose.value if sys.argv[2] == "--verbose":
             response = response_from_ia(message(sys.argv[1]))
-            print(f"User prompt:\n {usr_prompt}\n")
-            print(f"gemini-2 response:\n {response.text}")
-            print(
-                f"Prompt tokens: {response.usage_metadata.prompt_token_count}"
-            )  # prompt_token_count
-            print(
-                f"Response tokens: {response.usage_metadata.candidates_token_count}"
-            )  # response_token_count
+            if response.function_calls:
+                for item in response.function_calls:
+                    print(f"Calling function: {item.name}({item.args})")
+            else:
+                print(f"User prompt:\n {usr_prompt}\n")
+                print(f"gemini-2 response:\n {response.text}")
+                print(
+                    f"Prompt tokens: {response.usage_metadata.prompt_token_count}"
+                )  # prompt_token_count
+                print(
+                    f"Response tokens: {response.usage_metadata.candidates_token_count}"
+                )  # response_token_count
 
         case _:
             print(
