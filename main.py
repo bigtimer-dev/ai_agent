@@ -5,6 +5,7 @@ from google import genai  # import the google library for Ai
 import sys  # importing sys to use command line for prompt
 from google.genai import types
 from enum import Enum
+from functions.call_function import call_function
 from functions.get_file_content import schema_get_file_content
 from functions.run_python_file import schema_run_python_file
 from functions.get_files_info import schema_get_files_info
@@ -61,15 +62,23 @@ def main():
         case options.no_verbose.value:
             if response.function_calls:
                 for item in response.function_calls:
-                    print(f"Calling function: {item.name}({item.args})")
+                    result = call_function(item, False)
+                    parts = result.parts
+                    if not parts or not getattr(parts[0], "function_response", None):
+                        raise RuntimeError("Missing function_response in tool content")
+
             else:
                 print(response.text)
 
         case options.with_verbose.value if sys.argv[2] == "--verbose":
-            response = response_from_ia(message(sys.argv[1]))
             if response.function_calls:
                 for item in response.function_calls:
-                    print(f"Calling function: {item.name}({item.args})")
+                    result = call_function(item, True)
+                    parts = result.parts
+                    if not parts or not getattr(parts[0], "function_response", None):
+                        raise RuntimeError("Missing function_response in tool content")
+                    print(f"-> {result.parts[0].function_response.response}")
+
             else:
                 print(f"User prompt:\n {usr_prompt}\n")
                 print(f"gemini-2 response:\n {response.text}")

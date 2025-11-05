@@ -60,7 +60,7 @@ schema_run_python_file = types.FunctionDeclaration(
             ),
             "args": types.Schema(
                 type=types.Type.ARRAY,
-                description="Take optionals arguments as an array if the script need them to execute with other properties, if user dont specified any run without it",
+                description="Dont ask for args if user dont give them. Take optionals arguments as an array if the script need them to execute with other properties, if user dont specified any run without it",
                 items=types.Schema(
                     type=types.Type.STRING, description="aditional args"
                 ),
